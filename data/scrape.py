@@ -1,7 +1,21 @@
-from bs4 import BeautifulSoup
 import requests
 import datetime
+import cPickle
 from dateutil.parser import parse as parse_datetime
+from bs4 import BeautifulSoup
+
+
+def parse_weekdays(weekdays_string):
+    weekday_dict = {'M':0, 'Tu':1, 'W':2, 'Th':3, 'F':4, 'Sa':5, 'Su':6}
+    weekdays = []
+    buffer = weekdays_string[0]
+    for c in weekdays_string[1:]:
+        if c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+            weekdays.append(buffer)
+            buffer = ''
+        buffer += c
+    weekdays.append(buffer)
+    return map(weekday_dict.__getitem__, weekdays)
 
 semester = '201501'
 
@@ -23,6 +37,7 @@ for department in departments:
                      department_soup.find_all('div')
                      )
     for course in courses:
+        data[course] = {}
         course_id = course['id']
         description = filter(lambda x: 'class' in x.attrs and 'approved-course-text' in x['class'],
                              course.find_all('div')
@@ -30,6 +45,9 @@ for department in departments:
         title = filter(lambda x: 'class' in x.attrs and 'course-title' in x['class'],
                        course.find_all('span')
                        )[0].text.strip()
+        data[course]['description'] = description
+        data[course]['title'] = title
+        data[course][meetings] = []
         section_text = requests.get('https://ntst.umd.edu/soc/' + semester + '/sections',
                                     params = {'courseIds': course_id}
                                     ).text
@@ -37,7 +55,7 @@ for department in departments:
         sections = filter(lambda x: 'class' in x.attrs and 'section' in x['class'],
                           sections_soup.find_all('div')
                           )
-        lectures = []
+        lectures = {}
         for section in sections:
             lecturer = filter(lambda x: 'class' in x.attrs and 'section-instructor' in x['class'],
                               section.find_all('span')
@@ -66,3 +84,37 @@ for department in departments:
                                   )[0].text.strip()
                 start_time_parsed = parse_datetime(start_time).time()
                 end_time_parsed = parse_datetime(end_time).time()
+                meeting_type_container = filter(lambda x: 'span' in x.attrs and 'class-type' in x['class'],
+                                                meeting.find_all('span')
+                                                )
+                meeting_type = ''
+                if meeting_type_container:
+                    meeting_type += meeting_type_container[0].text.strip()
+                else:
+                    meeting_type += 'Lecture'
+                for weekday in parse_weekdays(days):
+                    d = {}
+                    d['type'] = meeting_type
+                    d['weekday'] = weekday
+                    d['start'] = start_time_parsed
+                    d['end'] = end_time_parsed
+                    d['instructor'] = lecturer
+                    d['location'] = location
+                    d['size'] = seats
+                    if meeting_type.lower().strip() == 'lecture':
+                        lecture_key = str(d['start'])+','+str(d[end])+','+str(weekday)+','+location
+                        if lecture_key not in lectures:
+                            lectures[lecture_key] = {}
+                            lectures[lecture_key]['seats'] = 0
+                            lectures[lecture_key]['info'] = d
+                        lectures[lecture_key]['seats'] += seats
+                    else:
+                        data[course][meetings].append(d)
+        for lecture_key in lectures:
+            d = lectures[lecture_key]['info']
+            d['size'] = lectures[lecture_key]['seats']
+            data[course][meetings].append(d)
+
+filename =  str(datetime.datetime.now().time()).replace(':',' ').replace('.',' ')
+cPickle.dump(data, open(filename, 'wb'), -1)
+
