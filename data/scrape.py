@@ -19,16 +19,16 @@ data = {}
 for department in departments:
     url = 'https://ntst.umd.edu/soc/' + semester + '/' + department
     department_soup = BeautifulSoup(requests.get(url).text)
-    classes = filter(lambda x: 'class' in x.attrs and 'course' in x['class'],
+    courses = filter(lambda x: 'class' in x.attrs and 'course' in x['class'],
                      department_soup.find_all('div')
                      )
-    for class in classes:
-        course_id = class['id']
+    for course in courses:
+        course_id = course['id']
         description = filter(lambda x: 'class' in x.attrs and 'approved-course-text' in x['class'],
-                             class.find_all('div')
+                             course.find_all('div')
                              )[0].text.strip()
         title = filter(lambda x: 'class' in x.attrs and 'course-title' in x['class'],
-                       class.find_all('span')
+                       course.find_all('span')
                        )[0].text.strip()
         section_text = requests.get('https://ntst.umd.edu/soc/' + semester + '/sections',
                                     params = {'courseIds': course_id}
