@@ -32,6 +32,8 @@ data = {}
 
 for department in departments:
     print department
+    if 'BIOE' > department:
+        continue
     url = 'https://ntst.umd.edu/soc/' + semester + '/' + department
     department_soup = BeautifulSoup(requests.get(url).text)
     courses = filter(lambda x: 'class' in x.attrs and 'course' in x['class'],
@@ -46,7 +48,7 @@ for department in departments:
                                        course.find_all('div')
                                        )
         if description_container:
-            description += description_container[0].text.strip()
+            description += ' '.join(map(lambda x: x.text.strip(), description_container))
         title = filter(lambda x: 'class' in x.attrs and 'course-title' in x['class'],
                        course.find_all('span')
                        )[0].text.strip()
@@ -75,21 +77,39 @@ for department in departments:
                               meeting_container.find_all('div')
                               )
             for meeting in meetings:
-                location = filter(lambda x: 'class' in x.attrs and 'section-class-building-group' in x['class'],
-                                  meeting.find_all('div')
-                                  )[0].text.strip()
-                days = filter(lambda x: 'class' in x.attrs and 'section-days' in x['class'],
-                              meeting.find_all('span')
-                              )[0].text.strip()
-                start_time = filter(lambda x: 'class' in x.attrs and 'class-start-time' in x['class'],
-                                    meeting.find_all('span')
-                                    )[0].text.strip()
-                end_time = filter(lambda x: 'class' in x.attrs and 'class-end-time' in x['class'],
-                                  meeting.find_all('span')
-                                  )[0].text.strip()
+                location_container = filter(lambda x: 'class' in x.attrs and 'section-class-building-group' in x['class'],
+                                            meeting.find_all('div')
+                                            )
+                if not location_container:
+                    continue
+                location = location_container[0].text.strip().replace('\n',' ')
+                if not location:
+                    continue
+                days_container = filter(lambda x: 'class' in x.attrs and 'section-days' in x['class'],
+                                        meeting.find_all('span')
+                                        )
+                if not days_container:
+                    continue
+                days = days_container[0].text.strip()
+                if not days:
+                    continue
+                start_time_container = filter(lambda x: 'class' in x.attrs and 'class-start-time' in x['class'],
+                                              meeting.find_all('span')
+                                              )
+                if not start_time_container:
+                    continue
+                start_time = start_time_container[0].text.strip()
+                end_time_container = filter(lambda x: 'class' in x.attrs and 'class-end-time' in x['class'],
+                                            meeting.find_all('span')
+                                            )
+                if not end_time_container:
+                    continue
+                end_time = end_time_container[0].text.strip()
+                if not start_time or not end_time:
+                    continue
                 start_time_parsed = parse_datetime(start_time).time()
                 end_time_parsed = parse_datetime(end_time).time()
-                meeting_type_container = filter(lambda x: 'span' in x.attrs and 'class-type' in x['class'],
+                meeting_type_container = filter(lambda x: 'class' in x.attrs and 'class-type' in x['class'],
                                                 meeting.find_all('span')
                                                 )
                 meeting_type = ''
