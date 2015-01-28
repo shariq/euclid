@@ -2,4 +2,4 @@
 
 http://euclid.io/
 
-Surf classes at UMD
+Surf UMD classes
