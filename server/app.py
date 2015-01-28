@@ -6,7 +6,7 @@ import threading
 import time
 import json
 import re
-from bottle import route, hook, response, run
+from bottle import route, hook, response, run, static_file
 
 database = cPickle.load(open('../data/Spring_2015.bin', 'rb'))
 
@@ -44,6 +44,9 @@ def updateThread():
         time.sleep(60)
 
 
+index_contents = open('index.html').read()
+# this is absolutely horrible and we should use nginx
+
 updateInformation()
 looper = threading.Thread(target = updateThread)
 looper.daemon = True
@@ -51,7 +54,7 @@ looper.start()
 
 @route('/')
 def index():
-    return 'yoyoyo'
+    return index_contents
 
 @route('/data')
 def data():
