@@ -36,6 +36,9 @@ def updateInformation():
                 new_meeting['description'] = description
                 new_information.append(new_meeting)
     globals()['information'] = json.dumps(new_information)
+    with open('index.html') as f:
+        # this is absolutely horrible and we should use nginx
+        globals()['index_contents'] = f.read()
 
 
 def updateThread():
@@ -44,8 +47,6 @@ def updateThread():
         time.sleep(60)
 
 
-index_contents = open('index.html').read()
-# this is absolutely horrible and we should use nginx
 
 updateInformation()
 looper = threading.Thread(target = updateThread)
@@ -54,7 +55,7 @@ looper.start()
 
 @route('/')
 def index():
-    return index_contents
+    return globals()['index_contents']
 
 @route('/data')
 def data():
