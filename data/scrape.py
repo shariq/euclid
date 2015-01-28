@@ -32,8 +32,6 @@ data = {}
 
 for department in departments:
     print department
-    if 'BIOE' > department:
-        continue
     url = 'https://ntst.umd.edu/soc/' + semester + '/' + department
     department_soup = BeautifulSoup(requests.get(url).text)
     courses = filter(lambda x: 'class' in x.attrs and 'course' in x['class'],
