@@ -1,13 +1,17 @@
+#!/usr/bin/env python
+
 import cPickle
 import datetime
 import threading
 import time
 import json
+import re
 from bottle import route, hook, response, run
 
-database = cPickle.load('../data/Spring_2015.bin')
+database = cPickle.load(open('../data/Spring_2015.bin', 'rb'))
 
 globals()['information'] = ''
+
 
 def updateInformation():
     weekday = datetime.datetime.now().weekday()
@@ -15,21 +19,33 @@ def updateInformation():
     new_information = []
     for course in database.keys():
         description = database[course]['description']
+        description = re.sub(r'(Formerly:|Restriction:|Prerequisite:|Credit only granted for:|Or permission of) .*?[.] ?', '', description)
+        description = description.strip()
         title = database[course]['title']
-        for meeting in meetings:
+        for meeting in database[course]['meetings']:
             if meeting['weekday'] != weekday:
                 continue
             if meeting['start'] < time < meeting['end']:
-                new_information.append((title, description, meeting))
+                if meeting['location'] == 'TBA':
+                    continue
+                new_meeting = meeting.copy()
+                new_meeting['start'] = new_meeting['start'].strftime('%I:%M %p')
+                new_meeting['end'] = new_meeting['end'].strftime('%I:%M %p')
+                new_meeting['title'] = title
+                new_meeting['code'] = course
+                new_meeting['description'] = description
+                new_information.append(new_meeting)
     globals()['information'] = json.dumps(new_information)
+
 
 def updateThread():
     while True:
         updateInformation()
         time.sleep(60)
 
+
 updateInformation()
-looper = threading.Thread(updateThread)
+looper = threading.Thread(target = updateThread)
 looper.daemon = True
 looper.start()
 
