@@ -31,23 +31,28 @@ departments = map(lambda x:x.text,
 data = {}
 
 for department in departments:
+    print department
     url = 'https://ntst.umd.edu/soc/' + semester + '/' + department
     department_soup = BeautifulSoup(requests.get(url).text)
     courses = filter(lambda x: 'class' in x.attrs and 'course' in x['class'],
                      department_soup.find_all('div')
                      )
     for course in courses:
-        data[course] = {}
         course_id = course['id']
-        description = filter(lambda x: 'class' in x.attrs and 'approved-course-text' in x['class'],
-                             course.find_all('div')
-                             )[0].text.strip()
+        data[course_id] = {}
+        print course_id
+        description = ''
+        description_container = filter(lambda x: 'class' in x.attrs and 'approved-course-text' in x['class'],
+                                       course.find_all('div')
+                                       )
+        if description_container:
+            description += description_container[0].text.strip()
         title = filter(lambda x: 'class' in x.attrs and 'course-title' in x['class'],
                        course.find_all('span')
                        )[0].text.strip()
-        data[course]['description'] = description
-        data[course]['title'] = title
-        data[course][meetings] = []
+        data[course_id]['description'] = description
+        data[course_id]['title'] = title
+        data[course_id]['meetings'] = []
         section_text = requests.get('https://ntst.umd.edu/soc/' + semester + '/sections',
                                     params = {'courseIds': course_id}
                                     ).text
@@ -102,19 +107,19 @@ for department in departments:
                     d['location'] = location
                     d['size'] = seats
                     if meeting_type.lower().strip() == 'lecture':
-                        lecture_key = str(d['start'])+','+str(d[end])+','+str(weekday)+','+location
+                        lecture_key = str(d['start'])+','+str(d['end'])+','+str(weekday)+','+location
                         if lecture_key not in lectures:
                             lectures[lecture_key] = {}
                             lectures[lecture_key]['seats'] = 0
                             lectures[lecture_key]['info'] = d
-                        lectures[lecture_key]['seats'] += seats
+                        lectures[lecture_key]['seats'] += int(seats)
                     else:
-                        data[course][meetings].append(d)
+                        data[course_id]['meetings'].append(d)
         for lecture_key in lectures:
             d = lectures[lecture_key]['info']
             d['size'] = lectures[lecture_key]['seats']
-            data[course][meetings].append(d)
+            data[course_id]['meetings'].append(d)
 
-filename =  str(datetime.datetime.now().time()).replace(':',' ').replace('.',' ')
+filename =  str(datetime.datetime.now().time()).replace(':','_').replace('.','_') + '.bin'
 cPickle.dump(data, open(filename, 'wb'), -1)
 
