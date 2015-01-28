@@ -1,6 +1,8 @@
 from bottle import route, hook, response, run
-import random
+import cPickle
+import datetime
 
+data = cPickle.load('../data/Spring_2015.bin')
 globals()['thingy'] = 'yoyoyo'
 
 @route('/')
