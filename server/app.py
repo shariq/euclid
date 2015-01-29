@@ -8,33 +8,20 @@ import json
 import re
 from bottle import route, hook, response, run, static_file
 
-database = cPickle.load(open('../data/Spring_2015.bin', 'rb'))
+database = cPickle.load(open('../data/spring15.bin', 'rb'))
 
 globals()['information'] = ''
 
 
 def updateInformation():
     weekday = datetime.datetime.now().weekday()
-    time = datetime.datetime.now().time()
+    time_now = datetime.datetime.now().time()
     new_information = []
-    for course in database.keys():
-        description = database[course]['description']
-        description = re.sub(r'(Formerly:|Restriction:|Prerequisite:|Credit only granted for:|Or permission of) .*?[.] ?', '', description)
-        description = description.strip()
-        title = database[course]['title']
-        for meeting in database[course]['meetings']:
-            if meeting['weekday'] != weekday:
-                continue
-            if meeting['start'] < time < meeting['end']:
-                if meeting['location'] == 'TBA':
-                    continue
-                new_meeting = meeting.copy()
-                new_meeting['start'] = new_meeting['start'].strftime('%I:%M %p')
-                new_meeting['end'] = new_meeting['end'].strftime('%I:%M %p')
-                new_meeting['title'] = title
-                new_meeting['code'] = course
-                new_meeting['description'] = description
-                new_information.append(new_meeting)
+    for meeting in database:
+        if meeting['weekday'] != weekday:
+            continue
+        if meeting['start'] < time_now + datetime.timedelta(minutes = 15) < meeting['end']:
+            new_information.append(meeting)
     globals()['information'] = json.dumps(new_information)
     with open('index.html') as f:
         # this is absolutely horrible and we should use nginx
@@ -45,7 +32,6 @@ def updateThread():
     while True:
         updateInformation()
         time.sleep(60)
-
 
 
 updateInformation()
