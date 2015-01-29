@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
-import requests
-import datetime
 import cPickle
+import datetime
+import requests
+import requests_cache
+
 from dateutil.parser import parse as parse_datetime
 from bs4 import BeautifulSoup
 
+
+requests_cache.install()
 
 def parse_weekdays(weekdays_string):
     weekday_dict = {'M':0, 'Tu':1, 'W':2, 'Th':3, 'F':4, 'Sa':5, 'Su':6}
@@ -30,6 +34,22 @@ departments = map(lambda x:x.text,
                          )
                   )
 
+def clean_description(description):
+    new_description = ''
+    for line in description.splitlines():
+        if not line.strip():
+            continue
+        if 'Prerequisites: ' in line or 'Formerly: ' in line or 'Corequisite: ' in line:
+            continue
+        if 'Restriction: ' in line or 'Credit only granted for: ' in line:
+            continue
+        if 'Additional description: ' in line or 'Recommended: ' in line:
+            continue
+        if 'Also offered as: ' in line:
+            continue
+        new_description += line.strip().replace(r'\"', '"').replace(r"\'", "'") + ' '
+    return new_description.strip()
+
 data = {}
 
 for department in departments:
@@ -41,20 +61,17 @@ for department in departments:
                      )
     for course in courses:
         course_id = course['id']
-        data[course_id] = {}
         print course_id
         description = ''
         description_container = filter(lambda x: 'class' in x.attrs and 'approved-course-text' in x['class'],
                                        course.find_all('div')
                                        )
         if description_container:
-            description += ' '.join(map(lambda x: x.text.strip(), description_container))
+            description += '\n'.join(map(lambda x: x.text.strip(), description_container))
+        description = clean_description(description)
         title = filter(lambda x: 'class' in x.attrs and 'course-title' in x['class'],
                        course.find_all('span')
                        )[0].text.strip()
-        data[course_id]['description'] = description
-        data[course_id]['title'] = title
-        data[course_id]['meetings'] = []
         section_text = requests.get('https://ntst.umd.edu/soc/' + semester + '/sections',
                                     params = {'courseIds': course_id}
                                     ).text
@@ -62,7 +79,6 @@ for department in departments:
         sections = filter(lambda x: 'class' in x.attrs and 'section' in x['class'],
                           sections_soup.find_all('div')
                           )
-        lectures = {}
         for section in sections:
             lecturer = filter(lambda x: 'class' in x.attrs and 'section-instructor' in x['class'],
                               section.find_all('span')
@@ -82,8 +98,8 @@ for department in departments:
                                             )
                 if not location_container:
                     continue
-                location = location_container[0].text.strip().replace('\n',' ')
-                if not location:
+                location = location_container[0].text.strip().replace('\n','').replace(' ', '')
+                if not location or location.strip() == 'TBA':
                     continue
                 days_container = filter(lambda x: 'class' in x.attrs and 'section-days' in x['class'],
                                         meeting.find_all('span')
@@ -125,21 +141,17 @@ for department in departments:
                     d['end'] = end_time_parsed
                     d['instructor'] = lecturer
                     d['location'] = location
-                    d['size'] = seats
-                    if meeting_type.lower().strip() == 'lecture':
-                        lecture_key = str(d['start'])+','+str(d['end'])+','+str(weekday)+','+location
-                        if lecture_key not in lectures:
-                            lectures[lecture_key] = {}
-                            lectures[lecture_key]['seats'] = 0
-                            lectures[lecture_key]['info'] = d
-                        lectures[lecture_key]['seats'] += int(seats)
-                    else:
-                        data[course_id]['meetings'].append(d)
-        for lecture_key in lectures:
-            d = lectures[lecture_key]['info']
-            d['size'] = lectures[lecture_key]['seats']
-            data[course_id]['meetings'].append(d)
+                    d['size'] = int(seats)
+                    d['description'] = description
+                    d['title'] = title
+                    d['id'] = {course_id}
+                    meeting_key = str(d['start'])+','+str(d['end'])+','+str(weekday)+','+location
+                    if meeting_key in data.keys():
+                        if meeting_type.lower().strip() == 'lecture':
+                            # Will not work for lectures offered as >1 class
+                            d['size'] += data[meeting_key]['size']
+                        d['id'] = d['id'].union(data[meeting_key]['id'])
+                    data[meeting_key] = d
 
 filename =  str(datetime.datetime.now().time()).replace(':','_').replace('.','_') + '.bin'
 cPickle.dump(data, open(filename, 'wb'), -1)
-
