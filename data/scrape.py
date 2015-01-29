@@ -2,6 +2,7 @@
 
 import cPickle
 import datetime
+import re
 import requests
 import requests_cache
 
@@ -99,7 +100,7 @@ for department in departments:
                 if not location_container:
                     print '(skipped: location unavailable)'
                     continue
-                location = location_container[0].text.strip().replace('\n','').replace(' ', '')
+                location = re.sub('[^A-Za-z0-9]+', ' ', location_container[0].text.replace('\n',' ')).strip()
                 if not location or location.strip() == 'TBA':
                     print '(skipped: bad location)'
                     continue

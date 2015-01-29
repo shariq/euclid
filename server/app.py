@@ -15,13 +15,17 @@ globals()['information'] = ''
 
 def updateInformation():
     weekday = datetime.datetime.now().weekday()
-    time_now = datetime.datetime.now().time()
+    time_later = (datetime.datetime.now() + datetime.timedelta(minutes = 15)).time()
     new_information = []
     for meeting in database:
         if meeting['weekday'] != weekday:
             continue
-        if meeting['start'] < time_now + datetime.timedelta(minutes = 15) < meeting['end']:
-            new_information.append(meeting)
+        if meeting['start'] < time_later < meeting['end']:
+            new_meeting = meeting.copy()
+            del new_meeting['start']
+            del new_meeting['end']
+            new_meeting['course'] = ', '.join(new_meeting['course'])
+            new_information.append(new_meeting)
     globals()['information'] = json.dumps(new_information)
     with open('index.html') as f:
         # this is absolutely horrible and we should use nginx
