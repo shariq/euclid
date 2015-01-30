@@ -42,6 +42,8 @@ def clean_description(description):
             continue
         if 'Prerequisites: ' in line or 'Formerly: ' in line or 'Corequisite: ' in line:
             continue
+        if 'Prerequisite: ' in line:
+            continue
         if 'Restriction: ' in line or 'Credit only granted for: ' in line:
             continue
         if 'Additional description: ' in line or 'Recommended: ' in line:
