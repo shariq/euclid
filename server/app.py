@@ -88,4 +88,4 @@ def select_data():
     return random.choice(globals()['information_list'])
 
 
-run(host = '0.0.0.0', port = 8080, server = 'tornado')
+run(host = '0.0.0.0', port = 80, server = 'tornado')
