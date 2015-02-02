@@ -29,24 +29,10 @@ def updateInformation():
         empty_meeting = {}
         empty_meeting['course'] = 'n/a'
         new_information.append(empty_meeting)
+    # thank goodness for the GIL
+    # still probably a really bad idea for some reason
     globals()['information_string'] = json.dumps(new_information)
     globals()['information_list'] = map(json.dumps, new_information)
-
-with open('index.html') as f:
-    # this is absolutely horrible and we should use nginx
-    globals()['index_html_content'] = f.read()
-
-with open('index.css') as f:
-    # this is absolutely horrible and we should use nginx
-    globals()['index_css_content'] = f.read()
-
-with open('index.js') as f:
-    # this is absolutely horrible and we should use nginx
-    globals()['index_js_content'] = f.read()
-
-with open('quojs.js') as f:
-    # this is absolutely horrible and we should use nginx
-    globals()['quo_js_content'] = f.read()
 
 def updateThread():
     while True:
