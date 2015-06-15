@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import cPickle
 import datetime
 import re
@@ -24,7 +25,13 @@ def parse_weekdays(weekdays_string):
     weekdays.append(buffer)
     return map(weekday_dict.__getitem__, weekdays)
 
-semester = '201501'
+if len(sys.argv) == 2:
+    semester = sys.argv[1]
+else:
+    print 'Please call this script with a semester string.'
+    print 'e.g,'
+    print 'scrape.py 201501'
+    sys.exit(-1)
 
 homepage = requests.get('https://ntst.umd.edu/soc/').text
 homepage_soup = BeautifulSoup(homepage)
