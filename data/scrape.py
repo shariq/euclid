@@ -73,6 +73,11 @@ for department in departments:
         course_id = course['id']
         print course_id
         description = ''
+        try:
+            course.find_all('div')
+        except AttributeError:
+            print '(skipped: this is a very weird bug; debug later)'
+            continue
         description_container = filter(lambda x: 'class' in x.attrs and 'approved-course-text' in x['class'],
                                        course.find_all('div')
                                        )
